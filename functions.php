@@ -53,6 +53,10 @@ class EG_WP
 			if (!empty($this->args['searchTerm'])) {
 				$searchTerm = $this->args['searchTerm'];
 			}
+			$enablePaging = false;
+			if (!empty($this->args['enablePaging'])) {
+				$enablePaging = $this->args['enablePaging'];
+			}
 			// default offset is 0 - no class argument matching offset
 			$offset = "0";
 			if (!empty($this->args['offset'])) {
@@ -60,13 +64,17 @@ class EG_WP
 			}
 			// default results is -1 - no class argument matching results
 			// -1 results returns the count of matching searchTerm
-			$results = "-1";
+			$results = "10";
 			if (!empty($this->args['results'])) {
 				$results = $this->args['results'];
 			}
 			$additionalParameters = array( 'fl' => '*,score' );
 			if (!empty($this->args['additionalParameters'])) {
 				$additionalParameters = $this->args['additionalParameters'];
+			}
+			$pagingSize = "6";
+			if (!empty($this->args['pagingSize'])) {
+				$pagingSize = $this->args['pagingSize'];
 			}
 			$pageSize = "10";
 			if (!empty($this->args['pageSize'])) {
@@ -76,14 +84,22 @@ class EG_WP
 			if (!empty($this->args['requestedPage'])) {
 				$requestedPage = $this->args['requestedPage'];
 			}
+			$qs_pagenumber = "pg";
+			if (!empty($this->args['qs_pagenumber'])) {
+				$qs_pagenumber = $this->args['qs_pagenumber'];
+			}
 			
 			$searchArguments = array( 
+				'enablePaging' => $enablePaging,
 				'offset' => $offset,
 				'results' => $results,
 				'searchTerm' => $searchTerm,
+				'prettySearchTerm' => ($searchTerm == "*:*" || $searchTerm == "*") ? "Any" : $searchTerm,
 				'additionalParameters' => $additionalParameters,
 				'pageSize' => $pageSize,
-				'requestedPage' => $requestedPage,
+				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
+				'pagingSize' => $pagingSize,
+				'qs_pagenumber' => $qs_pagenumber,
 			);
 		}
 		// return array with values (default at the least, or class arguments)
@@ -122,72 +138,129 @@ class EG_WP
 	
 	public function PagingResult()
 	{
-		// get the search arguments
 		$search = $this->SearchArguments();
-		
 		$count = intval($this->ResultCount()) - 1;
 		
+		$qs_pagenumber = $search['qs_pagenumber'];
+		$pagingSize = intval($search['pagingSize']);
 		$pageSize = intval($search['pageSize']);
 		$requestedPage = intval($search['requestedPage']);
+		$computedPage = intval($search['requestedPage']) + 1;
 		$offsetSize = $requestedPage * $pageSize;
-		
-		$hasPreviousBtn = true;
-		if ($requestedPage == 0) {
-			$hasPreviousBtn = false;
-		}
-		$hasNextBtn = true; 
-		if ($offsetSize >= $count) {
-			$hasNextBtn = false; 
-		}
 		
 		$varDivided = ($count / $pageSize);
 		$totalPages = ceil($varDivided);
+		
+		$ceilPagingSize = ceil( $pagingSize / 2 );
+		$floorPagingSize = floor( $pagingSize / 2 );
+		$lowerBound = max( 1, $requestedPage - $ceilPagingSize);
+		$upperBound = min( $totalPages, $requestedPage + $floorPagingSize);
+		
+		if ($computedPage == 1) {
+			$previousPage = 1;
+			$hasPreviousBtn = false;
+		} else {
+			$previousPage = $computedPage - 1;
+			$hasPreviousBtn = true;
+		}
+		if ($computedPage == $totalPages) {
+			$nextPage = 0;
+			$hasNextBtn = false; 
+		} else {
+			$nextPage = $computedPage + 1;
+			$hasNextBtn = true; 
+		}
+		
+		$lb = $lowerBound;
+		$ub = $upperBound;
+		$tp = $totalPages;
+		$cp = $computedPage;
+		
+		$pagingDiv = '<div class="eg-paging">';
+		if ( $tp != 1 ) {
+			if ( $hasPreviousBtn ) {
+				$pagingDiv .= '<a href="?'.$qs_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
+			}
+			if ( $lb != 1 ) {
+				$pagingDiv .= '<a href="?'.$qs_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
+			}
+			while($lb <= $ub) {
+				if ($lb == $cp) {
+					$pagingDiv .= '<span class="eg-cur-page">'.$lb.'</span>&nbsp;&nbsp;';
+				} else {
+					$pagingDiv .= '<a href="?'.$qs_pagenumber.'='.$lb.'">'.$lb.'</a>&nbsp;&nbsp;';
+				}
+				$lb ++;
+			}
+			if ( $ub != $tp ) {
+				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$qs_pagenumber.'='.$tp.'">'.$tp.'</a>';
+			}
+			if ( $hasNextBtn ) {
+				$pagingDiv .= '&nbsp;&nbsp;<a href="?'.$qs_pagenumber.'='.$nextPage.'" class="eg-paging-next">Next >></a>';
+			}
+		}
+		$pagingDiv .= '</div>';
 		
 		return array( 
 			'offsetSize' => $offsetSize,
 			'pageSize' => $pageSize,
 			'requestedPage' => $requestedPage,
+			'computedPage' => $computedPage,
 			'previousBtn' => $hasPreviousBtn,
+			'previousPage' => $previousPage,
 			'nextBtn' => $hasNextBtn,
+			'nextPage' => $nextPage,
+			'lowerBound' => $lowerBound,
+			'upperBound' => $upperBound,
+			'pagingElement' => $pagingDiv,
 			'totalPages' => $totalPages,
 			'searchTerm' => $search['searchTerm'],
-			'prettySearchTerm' => $search['searchTerm'] == "*:*" ? "Any" : $search['searchTerm'],
+			'prettySearchTerm' => $search['prettySearchTerm'],
 			'additionalParameters' => $search['additionalParameters'],
 		);
 	}
-		
+			
 	public function ExecuteSearch()
 	{
 		// get the SOLR instance
 		$solr = $this->SolrInstance();
+		
 		// get the search arguments
-		$paging = $this->PagingResult();
-		$offset = $paging['offsetSize'];
-		$limit = $paging['pageSize'];
-		$query = $paging['searchTerm'];
-		$additionalParameters = $paging['additionalParameters'];
+		$search = $this->SearchArguments();
+		$pagingEnabled = $search['enablePaging'];
+		
+		// is paging enabled, if so get search options from that
+		if ( $pagingEnabled ) {
+			$paging = $this->PagingResult();
+			$offset = $paging['offsetSize'];
+			$limit = $paging['pageSize'];
+			$query = $paging['searchTerm'];
+			$additionalParameters = $paging['additionalParameters'];
+		// else get the default (or set) results sizes and parameters
+		} else {
+			$offset = $search['offset'];
+			$limit = $search['results'];
+			$query = $search['searchTerm'];
+			$additionalParameters = $search['additionalParameters'];
+		}
+		
 		// execute search
 		$res = $solr->search($query, $offset, $limit, $additionalParameters);
 
 		// response
 		$responseArray = get_object_vars($res->response);
-		// prepend paging settings to response
-		$mergedArray = array_merge( $paging, $responseArray );
+		
+		// if paging is enabled, merge the paging result array onto the front of the response array
+		if ( $pagingEnabled ) {
+			// prepend paging settings to response
+			$mergedArray = array_merge( $paging, $responseArray );
+		} else {
+			// prepend search settings to response
+			$mergedArray = array_merge( $search, $responseArray );
+		}
 		
 		return $mergedArray;
 	}
 }
-
-//$testWS = new EG_WP(array( 'searchTerm' => $_GET['q'], ));
-//echo "Count: " . $testWS->ResultCount() . "<br/><br/>";
-//
-//$testWS = new EG_WP(array( 'searchTerm' => $_GET['q'], 'pageSize' => $_GET['ps'], 'requestedPage' => $_GET['rp'], ));
-//echo var_dump($testWS->ExecuteSearch()) . "<br/><br/>";
-//
-//$testWS = new EG_WP(array( 'searchTerm' => $_GET['q'], 'pageSize' => $_GET['ps'], 'requestedPage' => $_GET['rp'], ));
-//echo var_dump($testWS->PagingResult()) . "<br/><br/>";
-
-//$testWS = new EG_WP();
-//echo var_dump($testWS->AvailableWebServices()) . "<br/><br/>";
 
 ?>
