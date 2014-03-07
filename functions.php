@@ -1,6 +1,6 @@
 <?php
 
-require_once 'SolrPhpClient/Apache/Solr/Service.php';
+require_once 'SolrPhpClient/Apache/Solr/Service_custom.php';
 
 class EG_WP
 {
@@ -8,6 +8,8 @@ class EG_WP
 	const SOLR_HOST = 'solr.host.qia.oxi.net';
 	const SOLR_PORT = '8080';
 	const SOLR_PATH = 'solr';
+	
+	const SOLR_URI = 'http://egws.demoiis.oxfordcc.co.uk/resources?mode=solr';
 	
 	// Class variables:
 	// - args is an array to pass to the service's
@@ -50,8 +52,9 @@ class EG_WP
 		{
 			// default search term is *:* - no class argument matching searchTerm
 			$searchTerm = "*:*";
-			if (!empty($this->args['searchTerm'])) {
-				$searchTerm = $this->args['searchTerm'];
+			$_term = str_replace( '"', '', trim($this->args['searchTerm']) );
+			if (!empty($_term)) {
+				$searchTerm = '"'.$_term.'"';
 			}
 			$enablePaging = false;
 			if (!empty($this->args['enablePaging'])) {
@@ -94,7 +97,7 @@ class EG_WP
 				'offset' => $offset,
 				'results' => $results,
 				'searchTerm' => $searchTerm,
-				'prettySearchTerm' => ($searchTerm == "*:*" || $searchTerm == "*") ? "Any" : $searchTerm,
+				'prettySearchTerm' => ($_term == "*:*" || $_term == "*") ? "Any" : $_term,
 				'additionalParameters' => $additionalParameters,
 				'pageSize' => $pageSize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
@@ -107,25 +110,41 @@ class EG_WP
 	}
 	
 	private $solrInstance;
-	protected function SolrInstance()
+	protected function SolrInstance($asUri)
 	{
 		if (empty($solrInstance)) {
-			// new SOLR class object using above const's
-			$solr = new Apache_Solr_Service( EG_WP::SOLR_HOST, EG_WP::SOLR_PORT, EG_WP::SOLR_PATH );
-			// test SOLR service
-			if (!$solr->ping()) {
-				throw new Exception('EG_WP: Solr service not responding.');
-			} else {
+			if ( $asUri ) {
+				//echo 'SolrInstance useAPI = '.$asUri.'.<br/>';
+				// new SOLR class object using above const's
+				$solr = new Apache_Solr_Service( EG_WP::SOLR_URI );
+				$solr->setQueryDelimiter("&");
 				$solrInstance = $solr;
+			} else {
+				//echo 'SolrInstance useAPI = '.$asUri.'.<br/>';
+				// new SOLR class object using above const's
+				$solr = new Apache_Solr_Service( '', EG_WP::SOLR_HOST, EG_WP::SOLR_PORT, EG_WP::SOLR_PATH );
+				// test SOLR service
+				if (!$solr->ping()) {
+					throw new Exception('EG_WP: Solr service not responding.');
+				} else {
+					$solrInstance = $solr;
+				}
 			}
 		}
 		return $solrInstance;
 	}
 	
+	//protected function 
+	
 	public function ResultCount() 
 	{
+		$use_api = false;
+		if (!empty($this->args['use_api'])) {
+			$use_api = $this->args['use_api'];
+		}
+		
 		// get the SOLR instance
-		$solr = $this->SolrInstance();
+		$solr = $this->SolrInstance($use_api);
 		// get the search arguments
 		$search = $this->SearchArguments();
 		$query = $search['searchTerm'];
@@ -151,10 +170,8 @@ class EG_WP
 		$varDivided = ($count / $pageSize);
 		$totalPages = ceil($varDivided);
 		
-		$ceilPagingSize = ceil( $pagingSize / 2 );
-		$floorPagingSize = floor( $pagingSize / 2 );
-		$lowerBound = max( 1, $requestedPage - $ceilPagingSize);
-		$upperBound = min( $totalPages, $requestedPage + $floorPagingSize);
+		$lowerBound = max( 1, $computedPage - $pagingSize);
+		$upperBound = min( $totalPages, $computedPage + $pagingSize);
 		
 		if ($computedPage == 1) {
 			$previousPage = 1;
@@ -163,7 +180,7 @@ class EG_WP
 			$previousPage = $computedPage - 1;
 			$hasPreviousBtn = true;
 		}
-		if ($computedPage == $totalPages) {
+		if ($computedPage == $totalPages || $totalPages == 0) {
 			$nextPage = 0;
 			$hasNextBtn = false; 
 		} else {
@@ -181,7 +198,7 @@ class EG_WP
 			if ( $hasPreviousBtn ) {
 				$pagingDiv .= '<a href="?'.$qs_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
 			}
-			if ( $lb != 1 ) {
+			if ( $lb > 1 ) {
 				$pagingDiv .= '<a href="?'.$qs_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
 			}
 			while($lb <= $ub) {
@@ -192,7 +209,7 @@ class EG_WP
 				}
 				$lb ++;
 			}
-			if ( $ub != $tp ) {
+			if ( $ub <= ($tp - 1) ) {
 				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$qs_pagenumber.'='.$tp.'">'.$tp.'</a>';
 			}
 			if ( $hasNextBtn ) {
@@ -222,8 +239,13 @@ class EG_WP
 			
 	public function ExecuteSearch()
 	{
+		$use_api = false;
+		if (!empty($this->args['use_api'])) {
+			$use_api = $this->args['use_api'];
+		}
+		
 		// get the SOLR instance
-		$solr = $this->SolrInstance();
+		$solr = $this->SolrInstance($use_api);
 		
 		// get the search arguments
 		$search = $this->SearchArguments();

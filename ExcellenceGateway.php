@@ -42,6 +42,7 @@ function ExcellenceGateway_Search_func( $atts ) {
 			'results_template' => '',
 			'result_item_template' => '',
 			'qs_pagenumber' => '',
+			'use_api' => false,
 		), $atts ) );
 		
 		$result_item_template = '';
@@ -73,6 +74,7 @@ function ExcellenceGateway_Search_func( $atts ) {
 				'pagingSize' => $atts['pagingsize'],
 				'requestedPage' => $requestedPage,
 				'qs_pagenumber' => $pg,
+				'use_api' => $atts['use_api'],
 			)
 		);
 		

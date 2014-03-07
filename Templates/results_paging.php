@@ -2,15 +2,21 @@
 	$rp = $eg_search_results['requestedPage'];
 	$count = ($rp * $eg_search_results['pageSize']);
 ?>
+<div style="display:none;">
+	<?php echo var_dump( $eg_search_results ); ?>
+</div>
 <div class="eg-results">
 	<p class="eg-header">
 	<?php 
 		$documentCount = count( $eg_search_results['docs'] );
+		$maxDocument = $count + $documentCount;
 		$totalCount = intval( $eg_search_results['numFound'] );
 		
-		$outOf = ($documentCount < $totalCount) ? $documentCount.' out of '.$totalCount : $documentCount;
-		
-		echo 'Showing '.$outOf.' results for \''.$eg_search_results['prettySearchTerm'].'\':';
+		if ($documentCount > 0) {
+			echo 'Showing from result '.($count + 1).' to '.$maxDocument.($maxDocument < $totalCount ? ' of '.$totalCount.' results' : '').' for \''.$eg_search_results['prettySearchTerm'].'\':';
+		} else {
+			echo 'Showing 0 results for \''.$eg_search_results['prettySearchTerm'].'\'.';
+		}
 	?>
 	</p>
 	<?php 
