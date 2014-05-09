@@ -13,9 +13,9 @@ class EG_WP
 	
 	// Class variables:
 	// - args is an array to pass to the service's
-	// - pageSize is an int to set the size of a page
+	// - results_pagesize is an int to set the size of a page
 	// - pageNumber is an int to set the page number of results
-	protected $args, $pageSize, $pageNumber;
+	protected $args, $results_pagesize, $pageNumber;
 	
 	// Main construct, pass the arguments to correct construct.
 	function __construct() 
@@ -50,38 +50,42 @@ class EG_WP
 	{
 		if (empty($searchArguments))
 		{
-			// default search term is *:* - no class argument matching searchTerm
-			$searchTerm = "*:*";
-			$_term = str_replace( '"', '', trim($this->args['searchTerm']) );
+			// default search term is *:* - no class argument matching search_term
+			$search_term = "*:*";
+			$_term = str_replace( '"', '', trim($this->args['search_term']) );
 			if (!empty($_term)) {
-				$searchTerm = '"'.$_term.'"';
+				$search_term = '"'.$_term.'"';
 			}
-			$enablePaging = false;
-			if (!empty($this->args['enablePaging'])) {
-				$enablePaging = $this->args['enablePaging'];
+			$search_enabled = false;
+			if (!empty($this->args['search_enabled'])) {
+				$search_enabled = $this->args['search_enabled'];
 			}
-			// default offset is 0 - no class argument matching offset
-			$offset = "0";
-			if (!empty($this->args['offset'])) {
-				$offset = $this->args['offset'];
+			$paging_enabled = false;
+			if (!empty($this->args['paging_enabled'])) {
+				$paging_enabled = $this->args['paging_enabled'];
 			}
-			// default results is -1 - no class argument matching results
-			// -1 results returns the count of matching searchTerm
-			$results = "10";
-			if (!empty($this->args['results'])) {
-				$results = $this->args['results'];
+			// default results_offset is 0 - no class argument matching results_offset
+			$results_offset = "0";
+			if (!empty($this->args['results_offset'])) {
+				$results_offset = $this->args['results_offset'];
+			}
+			// default results_count is -1 - no class argument matching results_count
+			// -1 results_count returns the count of matching search_term
+			$results_count = "10";
+			if (!empty($this->args['results_count'])) {
+				$results_count = $this->args['results_count'];
 			}
 			$additionalParameters = array( 'fl' => '*,score' );
 			if (!empty($this->args['additionalParameters'])) {
 				$additionalParameters = $this->args['additionalParameters'];
 			}
-			$pagingSize = "6";
-			if (!empty($this->args['pagingSize'])) {
-				$pagingSize = $this->args['pagingSize'];
+			$paging_size = "6";
+			if (!empty($this->args['paging_size'])) {
+				$paging_size = $this->args['paging_size'];
 			}
-			$pageSize = "10";
-			if (!empty($this->args['pageSize'])) {
-				$pageSize = $this->args['pageSize'];
+			$results_pagesize = "10";
+			if (!empty($this->args['results_pagesize'])) {
+				$results_pagesize = $this->args['results_pagesize'];
 			}
 			$requestedPage = "0";
 			if (!empty($this->args['requestedPage'])) {
@@ -91,18 +95,24 @@ class EG_WP
 			if (!empty($this->args['qs_pagenumber'])) {
 				$qs_pagenumber = $this->args['qs_pagenumber'];
 			}
+			$qs_searchterm = "qq";
+			if (!empty($this->args['qs_searchterm'])) {
+				$qs_searchterm = $this->args['qs_searchterm'];
+			}
 			
 			$searchArguments = array( 
-				'enablePaging' => $enablePaging,
-				'offset' => $offset,
-				'results' => $results,
-				'searchTerm' => $searchTerm,
+				'search_enabled' => $search_enabled,
+				'paging_enabled' => $paging_enabled,
+				'results_offset' => $results_offset,
+				'results_count' => $results_count,
+				'search_term' => $search_term,
 				'prettySearchTerm' => ($_term == "*:*" || $_term == "*") ? "Any" : $_term,
 				'additionalParameters' => $additionalParameters,
-				'pageSize' => $pageSize,
+				'results_pagesize' => $results_pagesize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
-				'pagingSize' => $pagingSize,
+				'paging_size' => $paging_size,
 				'qs_pagenumber' => $qs_pagenumber,
+				'qs_searchterm' => $qs_searchterm,
 			);
 		}
 		// return array with values (default at the least, or class arguments)
@@ -147,7 +157,7 @@ class EG_WP
 		$solr = $this->SolrInstance($use_api);
 		// get the search arguments
 		$search = $this->SearchArguments();
-		$query = $search['searchTerm'];
+		$query = $search['search_term'];
 		$additionalParameters = $search['additionalParameters'];
 		// execute search
 		$res = $solr->search($query, 0, -1, $additionalParameters);
@@ -160,18 +170,20 @@ class EG_WP
 		$search = $this->SearchArguments();
 		$count = intval($this->ResultCount()) - 1;
 		
+		$qs_searchterm = $search['qs_searchterm'];
+		
 		$qs_pagenumber = $search['qs_pagenumber'];
-		$pagingSize = intval($search['pagingSize']);
-		$pageSize = intval($search['pageSize']);
+		$paging_size = intval($search['paging_size']);
+		$results_pagesize = intval($search['results_pagesize']);
 		$requestedPage = intval($search['requestedPage']);
 		$computedPage = intval($search['requestedPage']) + 1;
-		$offsetSize = $requestedPage * $pageSize;
+		$offsetSize = $requestedPage * $results_pagesize;
 		
-		$varDivided = ($count / $pageSize);
+		$varDivided = ($count / $results_pagesize);
 		$totalPages = ceil($varDivided);
 		
-		$lowerBound = max( 1, $computedPage - $pagingSize);
-		$upperBound = min( $totalPages, $computedPage + $pagingSize);
+		$lowerBound = max( 1, $computedPage - $paging_size);
+		$upperBound = min( $totalPages, $computedPage + $paging_size);
 		
 		if ($computedPage == 1) {
 			$previousPage = 1;
@@ -220,7 +232,7 @@ class EG_WP
 		
 		return array( 
 			'offsetSize' => $offsetSize,
-			'pageSize' => $pageSize,
+			'results_pagesize' => $results_pagesize,
 			'requestedPage' => $requestedPage,
 			'computedPage' => $computedPage,
 			'previousBtn' => $hasPreviousBtn,
@@ -231,7 +243,7 @@ class EG_WP
 			'upperBound' => $upperBound,
 			'pagingElement' => $pagingDiv,
 			'totalPages' => $totalPages,
-			'searchTerm' => $search['searchTerm'],
+			'search_term' => $search['search_term'],
 			'prettySearchTerm' => $search['prettySearchTerm'],
 			'additionalParameters' => $search['additionalParameters'],
 		);
@@ -249,20 +261,20 @@ class EG_WP
 		
 		// get the search arguments
 		$search = $this->SearchArguments();
-		$pagingEnabled = $search['enablePaging'];
+		$pagingEnabled = $search['paging_enabled'];
 		
 		// is paging enabled, if so get search options from that
 		if ( $pagingEnabled ) {
 			$paging = $this->PagingResult();
 			$offset = $paging['offsetSize'];
-			$limit = $paging['pageSize'];
-			$query = $paging['searchTerm'];
+			$limit = $paging['results_pagesize'];
+			$query = $paging['search_term'];
 			$additionalParameters = $paging['additionalParameters'];
-		// else get the default (or set) results sizes and parameters
+		// else get the default (or set) results_count sizes and parameters
 		} else {
-			$offset = $search['offset'];
-			$limit = $search['results'];
-			$query = $search['searchTerm'];
+			$offset = $search['results_offset'];
+			$limit = $search['results_count'];
+			$query = $search['search_term'];
 			$additionalParameters = $search['additionalParameters'];
 		}
 		

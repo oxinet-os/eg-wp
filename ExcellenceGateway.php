@@ -27,63 +27,70 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-require_once 'functions.php';
+require_once 'EG_Functions.php';
 
 function ExcellenceGateway_Search_func( $atts ) {	
 	try {
 	
 		extract( shortcode_atts( array(
-			'searchterm' => '*:*',
-			'results' => intval(10),
-			'offset' => intval(0),
-			'pagesize' => intval(0),
-			'pagingsize' => intval(6),
-			'enablepaging' => false,
-			'results_template' => '',
-			'result_item_template' => '',
+			'search_term' => '*:*',
+			'search_enabled' => false,
+			'results_count' => intval(10),
+			'results_offset' => intval(0),
+			'results_pagesize' => intval(0),
+			'paging_size' => intval(2),
+			'paging_enabled' => false,
+			'template_results' => '',
+			'template_result_item' => '',
 			'qs_pagenumber' => '',
-			'use_api' => false,
+			'qs_searchterm' => '',
 		), $atts ) );
 		
-		$result_item_template = '';
+		$template_result_item = '';
 		
-		if ( $atts['result_item_template'] == '' || $atts['result_item_template'] == 'result_item_default' ) {
-			$result_item_template = 'result_item_default.php';
+		if ( $atts['template_result_item'] == '' || $atts['template_result_item'] == 'result_item_default' ) {
+			$template_result_item = 'result_item_default.php';
 		} else {
-			$result_item_template = $atts['result_item_template'].'.php';
+			$template_result_item = $atts['template_result_item'].'.php';
 		}
 		
 		$pg = $atts['qs_pagenumber'];
 		if (empty( $pg )) { $pg = 'pg'; }
+		$qq = $atts['qs_searchterm'];
+		if (empty( $qq )) { $qq = 'qq'; }
 		
 		$requestedPage = 0;
 		foreach ($_GET as $key => $value) {
 			if ( $key === $pg ) {
 				$requestedPage = intval($value);
 			}
+			if ( $key === $qq ) {
+				$atts['search_term'] = $value;
+			}
 		}
 		
 		$eg_search = new EG_WP(
 			array
 			(
-				'results' => $atts['results'],
-				'offset' => $atts['offset'],
-				'searchTerm' => $atts['searchterm'],
-				'pageSize' => $atts['pagesize'],
-				'enablePaging' => $atts['enablepaging'],
-				'pagingSize' => $atts['pagingsize'],
+				'results_count' => $atts['results_count'],
+				'results_offset' => $atts['results_offset'],
+				'search_term' => $atts['search_term'],
+				'search_enabled' => $atts['search_enabled'],
+				'results_pagesize' => $atts['results_pagesize'],
+				'paging_enabled' => $atts['paging_enabled'],
+				'paging_size' => $atts['paging_size'],
 				'requestedPage' => $requestedPage,
 				'qs_pagenumber' => $pg,
-				'use_api' => $atts['use_api'],
+				'qs_searchterm' => $qq,
 			)
 		);
 		
 		$eg_search_results = $eg_search->ExecuteSearch();
 		
-		if ( $atts['results_template'] == '' || $atts['results_template'] == 'results_default' ) {
+		if ( $atts['template_results'] == '' || $atts['template_results'] == 'results_default' ) {
 			include 'Templates/results_default.php';
 		} else {
-			include 'Templates/'.$atts['results_template'].'.php';
+			include 'Templates/'.$atts['template_results'].'.php';
 		}
 		
 	} catch (Exception $e) {

@@ -17,7 +17,7 @@
 		$count = 0;
 		foreach ($docs as &$doc) {
 			$count = $count + 1;
-			include( $result_item_template );
+			include( $template_result_item );
 		}
 	?>
 </div>

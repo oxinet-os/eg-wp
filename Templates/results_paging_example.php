@@ -1,6 +1,6 @@
 <?php 
 	$rp = $eg_search_results['requestedPage'];
-	$count = ($rp * $eg_search_results['pageSize']);
+	$count = ($rp * $eg_search_results['results_pagesize']);
 ?>
 <div style="display:none;">
 	<?php echo var_dump( $eg_search_results ); ?>
@@ -27,7 +27,7 @@
 		$docs = $eg_search_results['docs'];
 		foreach ($docs as &$doc) {
 			$count = $count + 1;
-			include( $result_item_template );
+			include( $template_result_item );
 		}
 		
 		echo $eg_search_results['pagingElement'];
