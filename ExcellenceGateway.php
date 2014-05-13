@@ -29,71 +29,67 @@
 
 require_once 'EG_Functions.php';
 
-function ExcellenceGateway_Search_func( $atts ) {	
-	try {
+function ExcellenceGateway_Search_func( $atts ) {		
+	extract( shortcode_atts( array(
+		'search_term' => '*:*',
+		'search_enabled' => false,
+		'results_count' => intval(10),
+		'results_offset' => intval(0),
+		'results_pagesize' => intval(0),
+		'paging_size' => intval(2),
+		'paging_enabled' => false,
+		'template_results' => 'results_default',
+		'template_result_item' => 'result_item_default',
+		'var_pagenumber' => 'pg',
+		'var_searchterm' => 'qq',
+		'http_method' => 'GET',
+	), $atts, 'ExcellenceGateway_Search' ) );
 	
-		extract( shortcode_atts( array(
-			'search_term' => '*:*',
-			'search_enabled' => false,
-			'results_count' => intval(10),
-			'results_offset' => intval(0),
-			'results_pagesize' => intval(0),
-			'paging_size' => intval(2),
-			'paging_enabled' => false,
-			'template_results' => '',
-			'template_result_item' => '',
-			'qs_pagenumber' => '',
-			'qs_searchterm' => '',
-		), $atts ) );
-		
-		$template_result_item = '';
-		
-		if ( $atts['template_result_item'] == '' || $atts['template_result_item'] == 'result_item_default' ) {
-			$template_result_item = 'result_item_default.php';
-		} else {
-			$template_result_item = $atts['template_result_item'].'.php';
-		}
-		
-		$pg = $atts['qs_pagenumber'];
-		if (empty( $pg )) { $pg = 'pg'; }
-		$qq = $atts['qs_searchterm'];
-		if (empty( $qq )) { $qq = 'qq'; }
-		
-		$requestedPage = 0;
+	if ( !isset($atts['template_result_item']) || $atts['template_result_item'] == 'result_item_default' ) {
+		$template_result_item = 'result_item_default.php';
+	} else {
+		$template_result_item = $template_result_item.'.php';
+	}
+	
+	$pg = $var_pagenumber;
+	$qq = $var_searchterm;
+	
+	$requestedPage = 0;
+	$httpMeth = $http_method == 'GET' ? $_GET : ($http_method == 'POST' ? $_POST : null);
+	if ($httpMeth != null) {
 		foreach ($_GET as $key => $value) {
 			if ( $key === $pg ) {
 				$requestedPage = intval($value);
 			}
 			if ( $key === $qq ) {
-				$atts['search_term'] = $value;
+				$search_term = $value;
 			}
 		}
-		
-		$eg_search = new EG_WP(
-			array
-			(
-				'results_count' => $atts['results_count'],
-				'results_offset' => $atts['results_offset'],
-				'search_term' => $atts['search_term'],
-				'search_enabled' => $atts['search_enabled'],
-				'results_pagesize' => $atts['results_pagesize'],
-				'paging_enabled' => $atts['paging_enabled'],
-				'paging_size' => $atts['paging_size'],
-				'requestedPage' => $requestedPage,
-				'qs_pagenumber' => $pg,
-				'qs_searchterm' => $qq,
-			)
-		);
-		
-		$eg_search_results = $eg_search->ExecuteSearch();
-		
-		if ( $atts['template_results'] == '' || $atts['template_results'] == 'results_default' ) {
-			include 'Templates/results_default.php';
-		} else {
-			include 'Templates/'.$atts['template_results'].'.php';
-		}
-		
-	} catch (Exception $e) {
+	}
+	
+	$eg_search = new EG_WP(
+		array
+		(
+			'results_count' => $results_count,
+			'results_offset' => $results_offset,
+			'search_term' => $search_term,
+			'search_enabled' => $search_enabled,
+			'results_pagesize' => $results_pagesize,
+			'paging_enabled' => $paging_enabled,
+			'paging_size' => $paging_size,
+			'requestedPage' => $requestedPage,
+			'var_pagenumber' => $pg,
+			'var_searchterm' => $qq,
+			'http_method' => $http_method,
+		)
+	);
+	
+	$eg_result = $eg_search->ExecuteSearch();
+	
+	if ( empty($template_results) || $template_results == 'results_default' ) {
+		include 'Templates/results_default.php';
+	} else {
+		include 'Templates/'.$template_results.'.php';
 	}
 }
 

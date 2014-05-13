@@ -91,13 +91,13 @@ class EG_WP
 			if (!empty($this->args['requestedPage'])) {
 				$requestedPage = $this->args['requestedPage'];
 			}
-			$qs_pagenumber = "pg";
-			if (!empty($this->args['qs_pagenumber'])) {
-				$qs_pagenumber = $this->args['qs_pagenumber'];
+			$var_pagenumber = "pg";
+			if (!empty($this->args['var_pagenumber'])) {
+				$var_pagenumber = $this->args['var_pagenumber'];
 			}
-			$qs_searchterm = "qq";
-			if (!empty($this->args['qs_searchterm'])) {
-				$qs_searchterm = $this->args['qs_searchterm'];
+			$var_searchterm = "qq";
+			if (!empty($this->args['var_searchterm'])) {
+				$var_searchterm = $this->args['var_searchterm'];
 			}
 			
 			$searchArguments = array( 
@@ -111,8 +111,8 @@ class EG_WP
 				'results_pagesize' => $results_pagesize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
 				'paging_size' => $paging_size,
-				'qs_pagenumber' => $qs_pagenumber,
-				'qs_searchterm' => $qs_searchterm,
+				'var_pagenumber' => $var_pagenumber,
+				'var_searchterm' => $var_searchterm,
 			);
 		}
 		// return array with values (default at the least, or class arguments)
@@ -170,9 +170,9 @@ class EG_WP
 		$search = $this->SearchArguments();
 		$count = intval($this->ResultCount()) - 1;
 		
-		$qs_searchterm = $search['qs_searchterm'];
+		$var_searchterm = $search['var_searchterm'];
 		
-		$qs_pagenumber = $search['qs_pagenumber'];
+		$var_pagenumber = $search['var_pagenumber'];
 		$paging_size = intval($search['paging_size']);
 		$results_pagesize = intval($search['results_pagesize']);
 		$requestedPage = intval($search['requestedPage']);
@@ -208,24 +208,24 @@ class EG_WP
 		$pagingDiv = '<div class="eg-paging">';
 		if ( $tp != 1 ) {
 			if ( $hasPreviousBtn ) {
-				$pagingDiv .= '<a href="?'.$qs_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
+				$pagingDiv .= '<a href="?'.$var_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
 			}
 			if ( $lb > 1 ) {
-				$pagingDiv .= '<a href="?'.$qs_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
+				$pagingDiv .= '<a href="?'.$var_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
 			}
 			while($lb <= $ub) {
 				if ($lb == $cp) {
 					$pagingDiv .= '<span class="eg-cur-page">'.$lb.'</span>&nbsp;&nbsp;';
 				} else {
-					$pagingDiv .= '<a href="?'.$qs_pagenumber.'='.$lb.'">'.$lb.'</a>&nbsp;&nbsp;';
+					$pagingDiv .= '<a href="?'.$var_pagenumber.'='.$lb.'">'.$lb.'</a>&nbsp;&nbsp;';
 				}
 				$lb ++;
 			}
 			if ( $ub <= ($tp - 1) ) {
-				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$qs_pagenumber.'='.$tp.'">'.$tp.'</a>';
+				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$var_pagenumber.'='.$tp.'">'.$tp.'</a>';
 			}
 			if ( $hasNextBtn ) {
-				$pagingDiv .= '&nbsp;&nbsp;<a href="?'.$qs_pagenumber.'='.$nextPage.'" class="eg-paging-next">Next >></a>';
+				$pagingDiv .= '&nbsp;&nbsp;<a href="?'.$var_pagenumber.'='.$nextPage.'" class="eg-paging-next">Next >></a>';
 			}
 		}
 		$pagingDiv .= '</div>';
