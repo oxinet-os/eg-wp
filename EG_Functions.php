@@ -9,13 +9,13 @@ class EG_WP
 	const SOLR_PORT = '8080';
 	const SOLR_PATH = 'solr';
 	
-	const SOLR_URI = 'http://egws.demoiis.oxfordcc.co.uk/resources?mode=solr';
+	const SOLR_URI = 'http://egwsv1.demoiis.oxfordcc.co.uk/resources?mode=solr';
 	
 	// Class variables:
 	// - args is an array to pass to the service's
 	// - results_pagesize is an int to set the size of a page
 	// - pageNumber is an int to set the page number of results
-	protected $args, $results_pagesize, $pageNumber;
+	protected $args, $type, $results_pagesize, $pageNumber;
 	
 	// Main construct, pass the arguments to correct construct.
 	function __construct() 
@@ -40,14 +40,49 @@ class EG_WP
 	
 	function __construct1($args)
     {
-		// Construct with no array argument, just the web service.
         $this->args = $args;
 		return $this;
     }
 	
+	function __construct2($type, $args)
+    {
+		$this->type = $type;
+        $this->args = $args;
+		return $this;
+    }
+	
+	private $singleArguments;
+	public function SingleArguments()
+	{
+		if (empty($singleArguments))
+		{
+			$pid = "";
+			$_pid = str_replace( '"', '', trim($this->args['pid']) );
+			if (!empty($_pid)) {
+				$pid = $_pid;
+			}
+			
+			$_returnUrl = str_replace( '"', '', trim($this->args['returnUrl']) );
+			$returnUrl = empty($_returnUrl) ? 'javascript:history.go(-1);' : $_returnUrl;
+			
+			$http_method = "";
+			$_http_method = str_replace( '"', '', trim($this->args['http_method']) );
+			if (!empty($_http_method)) {
+				$http_method = $_http_method;
+			}
+			$singleArguments = array( 
+				'pid' => $pid,
+				'returnUrl' => $returnUrl,
+				'http_method' => $http_method,
+			);
+		}
+		// return array with values (default at the least, or class arguments)
+		return $singleArguments;
+	}
+	
 	private $searchArguments;
 	public function SearchArguments()
-	{
+	{ 
 		if (empty($searchArguments))
 		{
 			// default search term is *:* - no class argument matching search_term
@@ -79,7 +114,7 @@ class EG_WP
 			if (!empty($this->args['additionalParameters'])) {
 				$additionalParameters = $this->args['additionalParameters'];
 			}
-			$paging_size = "6";
+			$paging_size = "2";
 			if (!empty($this->args['paging_size'])) {
 				$paging_size = $this->args['paging_size'];
 			}
@@ -90,6 +125,10 @@ class EG_WP
 			$requestedPage = "0";
 			if (!empty($this->args['requestedPage'])) {
 				$requestedPage = $this->args['requestedPage'];
+			}
+			$page_url = "/excellence-gateway-content";
+			if (!empty($this->args['page_url'])) {
+				$page_url = $this->args['page_url'];
 			}
 			$var_pagenumber = "pg";
 			if (!empty($this->args['var_pagenumber'])) {
@@ -111,6 +150,7 @@ class EG_WP
 				'results_pagesize' => $results_pagesize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
 				'paging_size' => $paging_size,
+				'page_url' => $page_url,
 				'var_pagenumber' => $var_pagenumber,
 				'var_searchterm' => $var_searchterm,
 			);
@@ -148,7 +188,7 @@ class EG_WP
 	
 	public function ResultCount() 
 	{
-		$use_api = false;
+		$use_api = true;
 		if (!empty($this->args['use_api'])) {
 			$use_api = $this->args['use_api'];
 		}
@@ -163,6 +203,75 @@ class EG_WP
 		$res = $solr->search($query, 0, -1, $additionalParameters);
 		
 		return $res->response->numFound;
+	}
+	
+	public function GetSingle() 
+	{
+		$use_api = true;
+		if (!empty($this->args['use_api'])) {
+			$use_api = $this->args['use_api'];
+		}
+		
+		// get the SOLR instance
+		$solr = $this->SolrInstance($use_api);
+		$solr->setQueryStringEncapse(false);
+		// get the single arguments
+		$single = $this->SingleArguments();
+		
+		$res = false;
+		
+		// if $single['pid'] has value
+		if (!empty($single['pid'])) {
+		
+			$query = 'pid:"' . $single['pid'] . '"';
+			// execute single
+			$searchRes = $solr->search($query, 0, 1, NULL);
+			$response = get_object_vars($searchRes->response);
+			
+			if ($response && $response['docs'][0]) {
+				$firstDoc = (array)$response['docs'][0];
+				foreach ($firstDoc as $key => $value) {
+					if (strpos($key,'_fields') !== false) {
+						$res = $value;
+					}
+				}
+			}
+			
+			// if there is a result and that result has a Metadata-url
+			// then fetch and add to return array
+			if ($res && !empty($res['Metadata-url'])) {
+				$metaData = file_get_contents($res['Metadata-url']);
+				$metaXml = simplexml_load_string($metaData);
+				$metaJson = json_encode($metaXml);
+				$metaArray = json_decode($metaJson, TRUE);
+				if (!empty($metaArray)) {
+					$res = array_merge( $res, $metaArray );
+					
+					$firstMetaContribution = array( "firstMetaContribution" => false );
+					$lastMetaContribution = array( "lastMetaContribution" => false );
+					
+					if (!empty($metaArray['meta-metadata']) && !empty($metaArray['meta-metadata']['contributions']) && !empty($metaArray['meta-metadata']['contributions']['contribution'])) {
+						$metaContribs = $metaArray['meta-metadata']['contributions']['contribution'];
+						if (!empty($metaContribs[0])) {
+							$zeroIndexCount = count($metaContribs)-1;
+							$firstMetaContribution = array( "firstMetaContribution" => $metaContribs[0] );
+							if ($zeroIndexCount >= 1) {
+								$lastMetaContribution = array( "lastMetaContribution" => $metaContribs[$zeroIndexCount] );
+							}
+						}
+					}
+					
+					$res = array_merge( $res, $firstMetaContribution );
+					$res = array_merge( $res, $lastMetaContribution );
+				}
+				
+				$res = array_merge( $res, $single );
+			}
+			
+		} else {
+			$res = false;
+		}
+		return $res;
 	}
 	
 	public function PagingResult()
@@ -243,6 +352,7 @@ class EG_WP
 			'upperBound' => $upperBound,
 			'pagingElement' => $pagingDiv,
 			'totalPages' => $totalPages,
+			'page_url' => $search['page_url'],
 			'search_term' => $search['search_term'],
 			'prettySearchTerm' => $search['prettySearchTerm'],
 			'additionalParameters' => $search['additionalParameters'],
@@ -251,7 +361,7 @@ class EG_WP
 			
 	public function ExecuteSearch()
 	{
-		$use_api = false;
+		$use_api = true;
 		if (!empty($this->args['use_api'])) {
 			$use_api = $this->args['use_api'];
 		}

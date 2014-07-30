@@ -2,9 +2,6 @@
 	$rp = $eg_result['requestedPage'];
 	$count = ($rp * $eg_result['results_pagesize']);
 ?>
-<div style="display:none;">
-	<?php echo var_dump( $eg_result ); ?>
-</div>
 <div class="eg-results">
 	<p class="eg-header">
 	<?php 
@@ -27,6 +24,7 @@
 		$docs = $eg_result['docs'];
 		foreach ($docs as &$doc) {
 			$count = $count + 1;
+			$page_url = $eg_result['page_url'];
 			include( $template_result_item );
 		}
 		

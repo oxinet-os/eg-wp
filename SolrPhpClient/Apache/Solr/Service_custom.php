@@ -158,7 +158,7 @@ class Apache_Solr_Service
 	 *
 	 * @var string
 	 */
-	protected $_queryDelimiter = '?', $_queryStringDelimiter = '&', $_queryBracketsEscaped = true;
+	protected $_queryDelimiter = '?', $_queryStringDelimiter = '&', $_queryBracketsEscaped = true, $_queryStringEncapse = true;
 
 	/**
 	 * Constructed servlet full path URLs
@@ -266,12 +266,14 @@ class Apache_Solr_Service
 		{
 			//escape all parameters appropriately for inclusion in the query string
 			$escapedParams = array();
-
 			foreach ($params as $key => $value)
 			{
-				$escapedParams[] = urlencode($key) . '=' . urlencode($value);
+				if ($this->_queryStringEncapse) {
+					$escapedParams[] = urlencode($key) . '=' . urlencode($value);
+				} else {
+					$escapedParams[] = $key.$value;
+				}
 			}
-
 			$queryString = $this->_queryDelimiter . implode($this->_queryStringDelimiter, $escapedParams);
 		}
 		else
@@ -313,15 +315,26 @@ class Apache_Solr_Service
 		// NOTE: before php 5.1.3 brackets were not url encoded by http_build query - we've checked
 		// the php version in the constructor and put the results in the instance variable. Also, before
 		// 5.1.2 the arg_separator parameter was not available, so don't use it
-		if ($this->_queryBracketsEscaped)
-		{
-			$queryString = http_build_query($params, null, $this->_queryStringDelimiter);
-			return preg_replace('/%5B(?:[0-9]|[1-9][0-9]+)%5D=/', '=', $queryString);
-		}
-		else
-		{
-			$queryString = http_build_query($params);
-			return preg_replace('/\\[(?:[0-9]|[1-9][0-9]+)\\]=/', '=', $queryString);
+		if ($this->_queryStringEncapse) {
+			if ($this->_queryBracketsEscaped)
+			{
+				$queryString = http_build_query($params, null, $this->_queryStringDelimiter);
+				return preg_replace('/%5B(?:[0-9]|[1-9][0-9]+)%5D=/', '=', $queryString);
+			}
+			else
+			{
+				$queryString = http_build_query($params);
+				return preg_replace('/\\[(?:[0-9]|[1-9][0-9]+)\\]=/', '=', $queryString);
+			}
+		} else {
+			$varRes = array();
+			foreach ($params as $key => $value)
+			{
+				if (!empty($key) || !empty($value)) {
+					$varRes[] = $key . '=' . $value;
+				}
+			}
+			return implode("&", $varRes);
 		}
 	}
 
@@ -337,10 +350,9 @@ class Apache_Solr_Service
 	protected function _sendRawGet($url, $timeout = FALSE)
 	{
 		$httpTransport = $this->getHttpTransport();
-
 		$httpResponse = $httpTransport->performGetRequest($url, $timeout);
 		$solrResponse = new Apache_Solr_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
-
+		
 		if ($solrResponse->getHttpStatus() != 200)
 		{
 			throw new Apache_Solr_HttpTransportException($solrResponse);
@@ -637,6 +649,12 @@ class Apache_Solr_Service
 	public function setQueryStringDelimiter($queryStringDelimiter)
 	{
 		$this->_queryStringDelimiter = $queryStringDelimiter;
+	}
+	
+	//
+	public function setQueryStringEncapse($queryStringEncapse)
+	{
+		$this->_queryStringEncapse = $queryStringEncapse;
 	}
 
 	/**
