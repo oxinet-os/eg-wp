@@ -6,3 +6,6 @@ License: GNU General Public License, version 3 (GPL-3.0)
 License URI: https://www.gnu.org/copyleft/gpl.html
 
 WordPress plugin for the Excellence Gateway API
+
+See the wiki for information on usage, instructions and demos:
+https://github.com/oxinet-os/eg-wp/wiki
