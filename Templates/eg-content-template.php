@@ -16,11 +16,11 @@ require_once $eg_plugin_dir.'/EG_Functions.php';
 $pid = '';
 $return_url = '';
 $var_pid = 'pid';
-$var_returnUrl = 'ret';
+$var_returnurl = 'ret';
 $http_method = 'GET';
 
 $pid = isset($_REQUEST[$var_pid]) ? $_REQUEST[$var_pid] : $pid;
-$return_url = isset($_REQUEST[$var_returnUrl]) ? $_REQUEST[$var_returnUrl] : $return_url;
+$return_url = isset($_REQUEST[$var_returnurl]) ? $_REQUEST[$var_returnurl] : $return_url;
 
 $eg_single = new EG_WP(
 	'single',

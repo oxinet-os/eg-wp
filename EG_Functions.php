@@ -15,7 +15,7 @@ class EG_WP
 	// - args is an array to pass to the service's
 	// - results_pagesize is an int to set the size of a page
 	// - pageNumber is an int to set the page number of results
-	protected $args, $type, $results_pagesize, $pageNumber;
+	protected $args, $type;
 	
 	// Main construct, pass the arguments to correct construct.
 	function __construct() 
@@ -91,10 +91,6 @@ class EG_WP
 			if (!empty($_term)) {
 				$search_term = $_term;
 			}
-			$search_enabled = false;
-			if (!empty($this->args['search_enabled'])) {
-				$search_enabled = $this->args['search_enabled'];
-			}
 			$paging_enabled = false;
 			if (!empty($this->args['paging_enabled'])) {
 				$paging_enabled = $this->args['paging_enabled'];
@@ -144,7 +140,6 @@ class EG_WP
 			}
 			
 			$searchArguments = array( 
-				'search_enabled' => $search_enabled,
 				'paging_enabled' => $paging_enabled,
 				'results_offset' => $results_offset,
 				'results_count' => $results_count,
@@ -394,7 +389,7 @@ class EG_WP
 			$query = $search['search_term'];
 			$additionalParameters = $search['additionalParameters'];
 		}
-		
+
 		// execute search
 		$res = $solr->search('"'.$query.'"', $offset, $limit, $additionalParameters);
 

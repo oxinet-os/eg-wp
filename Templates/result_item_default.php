@@ -1,5 +1,5 @@
 <?php
-$partReturnUrl = "&".$var_returnUrl."=".urlencode($return_url);
+$partReturnUrl = "&".$var_returnurl."=".urlencode($return_url);
 if (strpos($return_url,'?') === false) {
 	$partReturnUrl .= urlencode("?".$var_searchterm."=".$search_term."&".$var_pagenumber."=".$requestedPage);
 }
