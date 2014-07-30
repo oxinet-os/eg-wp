@@ -63,7 +63,7 @@ class EG_WP
 			}
 			
 			$_returnUrl = str_replace( '"', '', trim($this->args['returnUrl']) );
-			$returnUrl = empty($_returnUrl) ? 'javascript:history.go(-1);' : $_returnUrl;
+			$returnUrl = empty($_returnUrl) ? '/excellence-gateway-search' : $_returnUrl;
 			
 			$http_method = "";
 			$_http_method = str_replace( '"', '', trim($this->args['http_method']) );
@@ -89,7 +89,7 @@ class EG_WP
 			$search_term = "*:*";
 			$_term = str_replace( '"', '', trim($this->args['search_term']) );
 			if (!empty($_term)) {
-				$search_term = '"'.$_term.'"';
+				$search_term = $_term;
 			}
 			$search_enabled = false;
 			if (!empty($this->args['search_enabled'])) {
@@ -197,7 +197,7 @@ class EG_WP
 		$solr = $this->SolrInstance($use_api);
 		// get the search arguments
 		$search = $this->SearchArguments();
-		$query = $search['search_term'];
+		$query = '"'.$search['search_term'].'"';
 		$additionalParameters = $search['additionalParameters'];
 		// execute search
 		$res = $solr->search($query, 0, -1, $additionalParameters);
@@ -280,6 +280,7 @@ class EG_WP
 		$count = intval($this->ResultCount()) - 1;
 		
 		$var_searchterm = $search['var_searchterm'];
+		$encoded_search_term = urlencode($search['search_term']);
 		
 		$var_pagenumber = $search['var_pagenumber'];
 		$paging_size = intval($search['paging_size']);
@@ -317,24 +318,24 @@ class EG_WP
 		$pagingDiv = '<div class="eg-paging">';
 		if ( $tp != 1 ) {
 			if ( $hasPreviousBtn ) {
-				$pagingDiv .= '<a href="?'.$var_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
+				$pagingDiv .= '<a href="?'.$var_searchterm.'='.$encoded_search_term.'&'.$var_pagenumber.'='.$previousPage.'" class="eg-paging-prev"><< Previous</a>&nbsp;&nbsp;';
 			}
 			if ( $lb > 1 ) {
-				$pagingDiv .= '<a href="?'.$var_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
+				$pagingDiv .= '<a href="?'.$var_searchterm.'='.$encoded_search_term.'&'.$var_pagenumber.'=1">1</a>&nbsp;&nbsp;...&nbsp;&nbsp;';
 			}
 			while($lb <= $ub) {
 				if ($lb == $cp) {
 					$pagingDiv .= '<span class="eg-cur-page">'.$lb.'</span>&nbsp;&nbsp;';
 				} else {
-					$pagingDiv .= '<a href="?'.$var_pagenumber.'='.$lb.'">'.$lb.'</a>&nbsp;&nbsp;';
+					$pagingDiv .= '<a href="?'.$var_searchterm.'='.$encoded_search_term.'&'.$var_pagenumber.'='.$lb.'">'.$lb.'</a>&nbsp;&nbsp;';
 				}
 				$lb ++;
 			}
 			if ( $ub <= ($tp - 1) ) {
-				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$var_pagenumber.'='.$tp.'">'.$tp.'</a>';
+				$pagingDiv .= '...&nbsp;&nbsp;<a href="?'.$var_searchterm.'='.$encoded_search_term.'&'.$var_pagenumber.'='.$tp.'">'.$tp.'</a>';
 			}
 			if ( $hasNextBtn ) {
-				$pagingDiv .= '&nbsp;&nbsp;<a href="?'.$var_pagenumber.'='.$nextPage.'" class="eg-paging-next">Next >></a>';
+				$pagingDiv .= '&nbsp;&nbsp;<a href="?'.$var_searchterm.'='.$encoded_search_term.'&'.$var_pagenumber.'='.$nextPage.'" class="eg-paging-next">Next >></a>';
 			}
 		}
 		$pagingDiv .= '</div>';
@@ -389,7 +390,7 @@ class EG_WP
 		}
 		
 		// execute search
-		$res = $solr->search($query, $offset, $limit, $additionalParameters);
+		$res = $solr->search('"'.$query.'"', $offset, $limit, $additionalParameters);
 
 		// response
 		$responseArray = get_object_vars($res->response);

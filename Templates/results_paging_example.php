@@ -22,9 +22,10 @@
 	</br>
 	<?php
 		$docs = $eg_result['docs'];
+		$page_url = $eg_result['page_url'];
+		
 		foreach ($docs as &$doc) {
 			$count = $count + 1;
-			$page_url = $eg_result['page_url'];
 			include( $template_result_item );
 		}
 		

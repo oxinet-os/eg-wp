@@ -1,7 +1,7 @@
 <?php
 /**
  * @package ExcellenceGateway
- * @version 0.2.1
+ * @version 0.2.2
  */
 /*
 	Plugin Name: EG WordPress API
@@ -129,7 +129,8 @@ add_action( 'plugins_loaded', array( 'EG_ContentPageTemplate', 'get_instance' ) 
 
 function ExcellenceGateway_Search_func( $atts ) {		
 	extract( shortcode_atts( array(
-		'search_term' => '*:*',
+		'search_on_empty' => false,
+		'search_term' => '',
 		'search_enabled' => false,
 		'results_count' => intval(10),
 		'results_offset' => intval(0),
@@ -139,6 +140,8 @@ function ExcellenceGateway_Search_func( $atts ) {
 		'template_results' => 'results_default',
 		'template_result_item' => 'result_item_default',
 		'page_url' => '/excellence-gateway-content',
+		'returnUrl' => '/excellence-gateway-search',
+		'var_returnUrl' => 'ret',
 		'var_pagenumber' => 'pg',
 		'var_searchterm' => 'qq',
 		'http_method' => 'GET',
@@ -150,72 +153,76 @@ function ExcellenceGateway_Search_func( $atts ) {
 		$template_result_item = $template_result_item.'.php';
 	}
 	
-	$pg = $var_pagenumber;
-	$qq = $var_searchterm;
+	$requestedPage = isset($_REQUEST[$var_pagenumber]) ? intval($_REQUEST[$var_pagenumber]) : 1;
+	$search_term = isset($_REQUEST[$var_searchterm]) ? $_REQUEST[$var_searchterm] : $search_term;
+		
+	if (!empty($search_term) || (empty($search_term) && $search_on_empty)) {
 	
-	$requestedPage = 0;
-	$httpMeth = $http_method == 'GET' ? $_GET : ($http_method == 'POST' ? $_POST : null);
-	if ($httpMeth != null) {
-		foreach ($httpMeth as $key => $value) {
-			if ( $key === $pg ) {
-				$requestedPage = intval($value);
-			}
-			if ( $key === $qq ) {
-				$search_term = $value;
-			}
+		$search_term = urldecode($search_term);
+		
+		$eg_search = new EG_WP(
+			'search',
+			array
+			(
+				'results_count' => $results_count,
+				'results_offset' => $results_offset,
+				'search_term' => $search_term,
+				'search_enabled' => $search_enabled,
+				'results_pagesize' => $results_pagesize,
+				'paging_enabled' => $paging_enabled,
+				'paging_size' => $paging_size,
+				'requestedPage' => $requestedPage,
+				'page_url' => $page_url,
+				'var_pagenumber' => $var_pagenumber,
+				'var_searchterm' => $var_searchterm,
+				'http_method' => $http_method,
+			)
+		);
+		
+		$eg_result = $eg_search->ExecuteSearch();
+		
+		if ( empty($template_results) || $template_results == 'results_default' ) {
+			include 'Templates/results_default.php';
+		} else {
+			include 'Templates/'.$template_results.'.php';
 		}
-	}
-	
-	$eg_search = new EG_WP(
-		'search',
-		array
-		(
-			'results_count' => $results_count,
-			'results_offset' => $results_offset,
-			'search_term' => $search_term,
-			'search_enabled' => $search_enabled,
-			'results_pagesize' => $results_pagesize,
-			'paging_enabled' => $paging_enabled,
-			'paging_size' => $paging_size,
-			'requestedPage' => $requestedPage,
-			'page_url' => $page_url,
-			'var_pagenumber' => $pg,
-			'var_searchterm' => $qq,
-			'http_method' => $http_method,
-		)
-	);
-	
-	$eg_result = $eg_search->ExecuteSearch();
-	
-	if ( empty($template_results) || $template_results == 'results_default' ) {
-		include 'Templates/results_default.php';
-	} else {
-		include 'Templates/'.$template_results.'.php';
-	}
+	}	
 }
 add_shortcode( 'ExcellenceGateway_Search', 'ExcellenceGateway_Search_func' );
+
+function ExcellenceGateway_SearchForm_func( $atts ) {		
+	extract( shortcode_atts( array(
+		'placeholder' => 'Search term...',
+		'var_searchterm' => 'qq',
+		'http_method' => 'GET',
+	), $atts, 'ExcellenceGateway_SearchForm' ) );
+	
+	$inputSearchTerm = isset($_REQUEST[$var_searchterm]) ? $_REQUEST[$var_searchterm] : "";
+	
+	$content = '
+	<div class="eg-search-form">
+		<form method="'.$http_method.'">
+			<input type="text" name="'.$var_searchterm.'" placeholder="'.$placeholder.'" value="'.$inputSearchTerm.'" />
+			<input type="submit" /> 
+		</form>
+	</div>';
+	
+	echo $content;
+}
+add_shortcode( 'ExcellenceGateway_SearchForm', 'ExcellenceGateway_SearchForm_func' );
 
 function ExcellenceGateway_Single_func( $atts ) {	
 	extract( shortcode_atts( array(
 		'template_single' => 'single_default',
 		'pid' => '',
-		'returnUrl' => '',
+		'returnUrl' => '/excellence-gateway-search',
 		'var_pid' => 'pid',
 		'var_returnUrl' => 'ret',
 		'http_method' => 'GET',
 	), $atts, 'ExcellenceGateway_Single' ) );
 	
-	$httpMeth = $http_method == 'GET' ? $_GET : ($http_method == 'POST' ? $_POST : null);
-	if ($httpMeth != null) {
-		foreach ($httpMeth as $key => $value) {
-			if ( $key === $var_pid ) {
-				$pid = $value;
-			}
-			if ( $key === $var_returnUrl ) {
-				$returnUrl = $value;
-			}
-		}
-	}
+	$pid = isset($_REQUEST[$var_pid]) ? $_REQUEST[$var_pid] : $pid;
+	$returnUrl = isset($_REQUEST[$var_returnUrl]) ? $_REQUEST[$var_returnUrl] : $returnUrl;
 	
 	$eg_single = new EG_WP(
 		'single',

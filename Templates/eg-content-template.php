@@ -19,17 +19,8 @@ $var_pid = 'pid';
 $var_returnUrl = 'ret';
 $http_method = 'GET';
 
-$httpMeth = $http_method == 'GET' ? $_GET : ($http_method == 'POST' ? $_POST : null);
-if ($httpMeth != null) {
-	foreach ($httpMeth as $key => $value) {
-		if ( $key === $var_pid ) {
-			$pid = $value;
-		}
-		if ( $key === $var_returnUrl ) {
-			$returnUrl = $value;
-		}
-	}
-}
+$pid = isset($_REQUEST[$var_pid]) ? $_REQUEST[$var_pid] : $pid;
+$returnUrl = isset($_REQUEST[$var_returnUrl]) ? $_REQUEST[$var_returnUrl] : $returnUrl;
 
 $eg_single = new EG_WP(
 	'single',
@@ -92,8 +83,8 @@ if ($eg_result) {
 								if (!empty($doc['url'])) { echo '<a target="_blank" href="'.$doc['url'].'">Open</a>'; }
 							?>
 						</div>
-						<?php // If 'returnUrl' field exists (which is defaulted to "javascript:history.go(-1);") then display:
-						if (!empty($doc['returnUrl']) || $doc['returnUrl'] == '#') { echo '<div class="eg-returnurl"><a href="'.$doc['returnUrl'].'">Go back...</a></div>'; } ?>
+						<?php // If 'returnUrl' field exists then display:
+						if (!empty($returnUrl)) { echo '<br/><div class="eg-returnurl"><a href="'.urldecode($returnUrl).'">Go back to search...</a></div>'; } ?>
 					</div>
 				</div><!-- #entry-content -->
 			</article>
