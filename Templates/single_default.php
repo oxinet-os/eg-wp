@@ -42,8 +42,8 @@ if ($eg_result) {
 								if (!empty($doc['url'])) { echo '<a target="_blank" href="'.$doc['url'].'">Open</a>'; }
 							?>
 						</div>
-						<?php // If 'returnUrl' field exists (which is defaulted to "javascript:history.go(-1);") then display:
-						if (!empty($doc['returnUrl']) || $doc['returnUrl'] == '#') { echo '<div class="eg-returnurl"><a href="'.$doc['returnUrl'].'">Go back...</a></div>'; } ?>
+						<?php // If 'return_url' field exists then display:
+						if (!empty($return_url)) { echo '<br/><div class="eg-returnurl"><a href="'.urldecode($return_url).'">Go back to search...</a></div>'; } ?>
 					</div>
 				</div><!-- #entry-content -->
 			</article>

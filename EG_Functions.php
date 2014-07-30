@@ -62,8 +62,8 @@ class EG_WP
 				$pid = $_pid;
 			}
 			
-			$_returnUrl = str_replace( '"', '', trim($this->args['returnUrl']) );
-			$returnUrl = empty($_returnUrl) ? '/excellence-gateway-search' : $_returnUrl;
+			$_return_url = str_replace( '"', '', trim($this->args['return_url']) );
+			$return_url = empty($_return_url) ? '/excellence-gateway-search' : $_return_url;
 			
 			$http_method = "";
 			$_http_method = str_replace( '"', '', trim($this->args['http_method']) );
@@ -72,7 +72,7 @@ class EG_WP
 			}
 			$singleArguments = array( 
 				'pid' => $pid,
-				'returnUrl' => $returnUrl,
+				'return_url' => $return_url,
 				'http_method' => $http_method,
 			);
 		}
@@ -126,9 +126,13 @@ class EG_WP
 			if (!empty($this->args['requestedPage'])) {
 				$requestedPage = $this->args['requestedPage'];
 			}
-			$page_url = "/excellence-gateway-content";
-			if (!empty($this->args['page_url'])) {
-				$page_url = $this->args['page_url'];
+			$content_url = "/excellence-gateway-content";
+			if (!empty($this->args['content_url'])) {
+				$content_url = $this->args['content_url'];
+			}
+			$return_url = "/excellence-gateway-search";
+			if (!empty($this->args['return_url'])) {
+				$return_url = $this->args['return_url'];
 			}
 			$var_pagenumber = "pg";
 			if (!empty($this->args['var_pagenumber'])) {
@@ -150,7 +154,8 @@ class EG_WP
 				'results_pagesize' => $results_pagesize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
 				'paging_size' => $paging_size,
-				'page_url' => $page_url,
+				'content_url' => $content_url,
+				'return_url' => $return_url,
 				'var_pagenumber' => $var_pagenumber,
 				'var_searchterm' => $var_searchterm,
 			);
@@ -353,7 +358,8 @@ class EG_WP
 			'upperBound' => $upperBound,
 			'pagingElement' => $pagingDiv,
 			'totalPages' => $totalPages,
-			'page_url' => $search['page_url'],
+			'content_url' => $search['content_url'],
+			'return_url' => $search['return_url'],
 			'search_term' => $search['search_term'],
 			'prettySearchTerm' => $search['prettySearchTerm'],
 			'additionalParameters' => $search['additionalParameters'],

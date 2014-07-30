@@ -139,8 +139,8 @@ function ExcellenceGateway_Search_func( $atts ) {
 		'paging_enabled' => false,
 		'template_results' => 'results_default',
 		'template_result_item' => 'result_item_default',
-		'page_url' => '/excellence-gateway-content',
-		'returnUrl' => '/excellence-gateway-search',
+		'content_url' => '/excellence-gateway-content',
+		'return_url' => $_SERVER['REQUEST_URI'],
 		'var_returnUrl' => 'ret',
 		'var_pagenumber' => 'pg',
 		'var_searchterm' => 'qq',
@@ -172,7 +172,8 @@ function ExcellenceGateway_Search_func( $atts ) {
 				'paging_enabled' => $paging_enabled,
 				'paging_size' => $paging_size,
 				'requestedPage' => $requestedPage,
-				'page_url' => $page_url,
+				'content_url' => $content_url,
+				'return_url' => $return_url,
 				'var_pagenumber' => $var_pagenumber,
 				'var_searchterm' => $var_searchterm,
 				'http_method' => $http_method,
@@ -215,21 +216,21 @@ function ExcellenceGateway_Single_func( $atts ) {
 	extract( shortcode_atts( array(
 		'template_single' => 'single_default',
 		'pid' => '',
-		'returnUrl' => '/excellence-gateway-search',
+		'return_url' => '/excellence-gateway-search',
 		'var_pid' => 'pid',
 		'var_returnUrl' => 'ret',
 		'http_method' => 'GET',
 	), $atts, 'ExcellenceGateway_Single' ) );
 	
 	$pid = isset($_REQUEST[$var_pid]) ? $_REQUEST[$var_pid] : $pid;
-	$returnUrl = isset($_REQUEST[$var_returnUrl]) ? $_REQUEST[$var_returnUrl] : $returnUrl;
+	$return_url = isset($_REQUEST[$var_returnUrl]) ? $_REQUEST[$var_returnUrl] : $return_url;
 	
 	$eg_single = new EG_WP(
 		'single',
 		array
 		(
 			'pid' => $pid,
-			'returnUrl' => $returnUrl,
+			'return_url' => $return_url,
 			'http_method' => $http_method,
 		)
 	);

@@ -22,8 +22,8 @@
 	</br>
 	<?php
 		$docs = $eg_result['docs'];
-		$page_url = $eg_result['page_url'];
-		
+		$content_url = $eg_result['content_url'];
+		$return_url = $eg_result['return_url'];
 		foreach ($docs as &$doc) {
 			$count = $count + 1;
 			include( $template_result_item );
