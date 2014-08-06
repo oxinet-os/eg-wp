@@ -60,6 +60,7 @@ if ($eg_result) {
 				echo !empty($doc['title']) ? '<header class="entry-header"><h1 class="eg-title entry-title">'.$doc['title'].'</h1></header>' : '';
 				?>
 				<div class="entry-content">
+					<div style="display:none;"><?php var_dump($doc); ?></div>
 					<div class="eg-res eg-single">
 						<?php
 							// If 'description' field exists, then display:

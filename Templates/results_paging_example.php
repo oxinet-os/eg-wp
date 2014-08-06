@@ -10,9 +10,9 @@
 		$totalCount = intval( $eg_result['numFound'] );
 		
 		if ($documentCount > 0) {
-			echo 'Showing from result '.($count + 1).' to '.$maxDocument.($maxDocument < $totalCount ? ' of '.$totalCount.' results' : '').' for \''.$eg_result['prettySearchTerm'].'\':';
+			echo 'Showing from result '.($count + 1).' to '.$maxDocument.($maxDocument < $totalCount ? ' of '.$totalCount.' results' : '').':';
 		} else {
-			echo 'Showing 0 results for \''.$eg_result['prettySearchTerm'].'\'.';
+			echo 'Showing 0 results.';
 		}
 	?>
 	</p>

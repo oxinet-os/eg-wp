@@ -348,7 +348,7 @@ class Apache_Solr_Service
 	 * @throws Apache_Solr_HttpTransportException If a non 200 response status is returned
 	 */
 	protected function _sendRawGet($url, $timeout = FALSE)
-	{
+	{	
 		$httpTransport = $this->getHttpTransport();
 		$httpResponse = $httpTransport->performGetRequest($url, $timeout);
 		$solrResponse = new Apache_Solr_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
@@ -1178,7 +1178,7 @@ class Apache_Solr_Service
 	 * @throws Apache_Solr_HttpTransportException If an error occurs during the service call
 	 * @throws Apache_Solr_InvalidArgumentException If an invalid HTTP method is used
 	 */
-	public function search($query, $offset = 0, $limit = 10, $params = array(), $method = self::METHOD_GET)
+	public function search($query, $offset = 0, $limit = 10, $params = array(), $fqOptions = array(), $method = self::METHOD_GET)
 	{
 		// ensure params is an array
 		if (!is_null($params))
@@ -1205,6 +1205,11 @@ class Apache_Solr_Service
 		$params['rows'] = $limit;
 
 		$queryString = $this->_generateQueryString($params);
+		
+		foreach ($fqOptions as $key => $value) 
+		{
+			$queryString .= "&fq=".urlencode($key).":".urlencode($value);
+		}
 
 		if ($method == self::METHOD_GET)
 		{

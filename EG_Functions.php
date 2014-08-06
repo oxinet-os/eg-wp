@@ -9,8 +9,10 @@ class EG_WP
 	const SOLR_PORT = '8080';
 	const SOLR_PATH = 'solr';
 	
+	const API_URL = 'http://egwsv1.demoiis.oxfordcc.co.uk';
 	const SOLR_URI = 'http://egwsv1.demoiis.oxfordcc.co.uk/resources?mode=solr';
-	
+	const VOCAB_URI = 'http://egwsv1.demoiis.oxfordcc.co.uk/vocabularies';
+		
 	// Class variables:
 	// - args is an array to pass to the service's
 	// - results_pagesize is an int to set the size of a page
@@ -19,7 +21,7 @@ class EG_WP
 	
 	// Main construct, pass the arguments to correct construct.
 	function __construct() 
-    { 
+    {	
         $a = func_get_args(); 
         $i = func_num_args(); 
         if (method_exists($this,$f='__construct'.$i))
@@ -80,6 +82,248 @@ class EG_WP
 		return $singleArguments;
 	}
 	
+	public function GetPrimaryRawVocabularies()
+	{
+		$ret = false;
+		try {
+			$rawData = file_get_contents( EG_WP::VOCAB_URI );
+			$xml = simplexml_load_string($rawData);
+			$json = json_encode($xml);
+			$array = json_decode($json, TRUE);
+			return $array["string"];
+		} catch (Exception $e) {
+		}
+		return $ret;
+	}
+	
+	public function GetSubRawVocabularies($vocab)
+	{
+		$ret = false;
+		
+		if (strpos($vocab, "/") !== 0) {
+			$vocab = "/".$vocab;
+		}
+		
+		try {
+			$rawData = file_get_contents( EG_WP::VOCAB_URI . $vocab );
+			$xml = simplexml_load_string($rawData);
+			$json = json_encode($xml);
+			$array = json_decode($json, TRUE);
+			
+			$retArray = array();
+			if (!empty($array["term"]))
+			{
+				foreach ($array["term"] as $eachTerm) {
+					$retArray[] = $eachTerm["@attributes"]["name"];
+				}
+			}
+			
+			return $retArray;
+		} catch (Exception $e) {
+		}
+		return $ret;
+	}
+	
+	public function GetPrettyPrimaryVocabularies($inputToReturn)
+	{
+		if (!isset($inputToReturn) || empty($inputToReturn) || $inputToReturn === FALSE) {
+			$inputToReturn = FALSE;
+		} else if (!is_array($inputToReturn)) {
+			$inputToReturn = array( $inputToReturn );
+		}
+		
+		$retArray = FALSE;
+		$raw = $this->GetPrimaryRawVocabularies();
+		if ($raw === FALSE || !empty($raw))
+		{
+			$retArray = array();
+			foreach ($raw as $eachRaw) {
+				$matchesCount = preg_match('/[^\/]+$/m', (string)$eachRaw, $matches);
+				if ($matchesCount > 0)
+				{
+					$vocab = $matches[0];
+					
+					if ($inputToReturn == FALSE || in_array($vocab, $inputToReturn))
+					{
+						$subVocabs = $this->GetSubRawVocabularies($vocab);
+						
+						if ($subVocabs !== FALSE)
+						{
+							sort($subVocabs);
+						}
+						
+						array_push(
+							$retArray,
+							array
+							(
+								$eachRaw,
+								$vocab,
+								$this->GetPrettyVocabName($vocab),
+								$subVocabs !== FALSE ? $subVocabs : FALSE
+							)
+						);
+					}
+				}
+			}
+		}
+		return $retArray;
+	}
+	
+	public function GetSelectOfVocabularies($inputToReturn, $defaultValue, $showTitle, $_currentFilters)
+	{
+		if (!isset($defaultValue) || $defaultValue == "false") {
+			$defaultValue = FALSE;
+		} else if ($defaultValue === "true") {
+			$defaultValue = TRUE;
+		}
+		
+		if (!isset($showTitle) || empty($showTitle) || $showTitle == "false") {
+			$showTitle = FALSE;
+		} else {
+			$showTitle = TRUE;
+		}
+	
+		$retContent = "";
+		$arrayPrettyVocabs = $this->GetPrettyPrimaryVocabularies($inputToReturn);
+		if ($arrayPrettyVocabs !== FALSE) 
+		{
+			$retContent .= "<div class='eg-vocabs'>";
+			foreach ($arrayPrettyVocabs as &$vocab) {
+				$indVocabString = "eg-vocab-".trim($vocab[1]);
+				$retContent .= "<div class='".$indVocabString."'>";
+				if ($showTitle)
+				{
+					$retContent .= "<div class='eg-vocab-title'>".$vocab[2].":</div>";
+				}
+				$retContent .= "<select name='".$indVocabString."'>"; 
+				if ($defaultValue !== FALSE)
+				{
+					if ($defaultValue === TRUE)
+					{
+						$defaultValue = $vocab[2];
+						$retContent .= "<option value=''>".$defaultValue."</option>";
+						$defaultValue = TRUE;
+					}
+					else 
+					{
+						$retContent .= "<option value=''>".$defaultValue."</option>";
+					}
+				}
+				if ($vocab[3] !== FALSE)
+				{
+					$currentFilter = FALSE;
+					try {
+						if (isset($_currentFilters[$indVocabString]) && !empty($_currentFilters[$indVocabString])) 
+						{
+							$currentFilter = $_currentFilters[$indVocabString];
+						}
+					} catch (Exception $ex) {
+					}
+					
+					foreach ($vocab[3] as &$vocabItem) {
+						$selectedString = ($currentFilter !== FALSE && $currentFilter == $vocabItem ? " selected='selected'" : "");
+						$retContent .= "<option value='".$vocabItem."'".$selectedString.">".$vocabItem."</option>";
+					}
+				}
+				$retContent .= "</select></div>";
+			}
+			$retContent .= "</div>";
+		}
+		return $retContent;
+	}
+	
+	public function GetPrettyVocabName($input)
+	{
+		$res = "";
+		switch($input) {
+			case "EGaudience":
+				$res = "Audience";
+				break;
+			case "EGgeogcoverage":
+				$res = "Location Coverage";
+				break;
+			case "EGinfoarch2011":
+				$res = "Information Archive 2011";
+				break;
+			case "EGproviders":
+				$res = "Providers";
+				break;
+			case "EGprovisionlearnerfocus":
+				$res = "Provision Learner Focus";
+				break;
+			case "EGpublisher":
+				$res = "Publisher";
+				break;
+			case "EGresourcetype":
+				$res = "Resource Type";
+				break;
+			case "EGssa":
+				$res = "SSA";
+				break;
+			case "EGnavigation":
+				$res = "Navigation";
+				break;
+			case "EGservices":
+				$res = "Services";
+				break;
+			case "EGsourcewebsite":
+				$res = "Source Website";
+				break;
+			case "EGsupportservices":
+				$res = "Support Services";
+				break;
+			case "EGyearofpublication":
+				$res = "Year of Publication";
+				break;
+			case "EGcuratedcollections":
+				$res = "Curated Collections";
+				break;
+			case "LSISplatforms":
+				$res = "LSIS Platforms";
+				break;
+			case "SfLCoreCurricula":
+				$res = "SfL Core Curricula";
+				break;
+			case "SfLlevels":
+				$res = "SfL Levels";
+				break;
+			default:
+				$res = $input;
+				break;
+		}
+		return $res;
+	}
+	
+	public function DecodeVocabArray($input)
+	{
+		$res = array();
+		foreach($input as $key => $value){
+			if(substr($key, 0, 9) == "eg-vocab-"){
+				if (!empty($value))
+				{
+					$keyRemainder = substr($key, 9, strlen($key) - 1);
+					$res[$keyRemainder] = $value;
+				}
+			}
+		}
+		return $res;
+	}
+	
+	public function HasAnyVocab($input)
+	{
+		$res = FALSE;
+		foreach($input as $key => $value){
+			if(substr($key, 0, 9) == "eg-vocab-"){
+				if (!empty($value))
+				{
+					$res = TRUE;
+					return $res;
+				}
+			}
+		}
+		return $res;
+	}
+	
 	private $searchArguments;
 	public function SearchArguments()
 	{ 
@@ -110,6 +354,9 @@ class EG_WP
 			if (!empty($this->args['additionalParameters'])) {
 				$additionalParameters = $this->args['additionalParameters'];
 			}
+			
+			$fqOptions = $this->DecodeVocabArray($_REQUEST);
+			
 			$paging_size = "2";
 			if (!empty($this->args['paging_size'])) {
 				$paging_size = $this->args['paging_size'];
@@ -146,6 +393,7 @@ class EG_WP
 				'search_term' => $search_term,
 				'prettySearchTerm' => ($_term == "*:*" || $_term == "*") ? "Any" : $_term,
 				'additionalParameters' => $additionalParameters,
+				'fqOptions' => $fqOptions,
 				'results_pagesize' => $results_pagesize,
 				'requestedPage' => ($requestedPage == 0 ? 0 : ($requestedPage - 1)),
 				'paging_size' => $paging_size,
@@ -200,7 +448,7 @@ class EG_WP
 		$query = '"'.$search['search_term'].'"';
 		$additionalParameters = $search['additionalParameters'];
 		// execute search
-		$res = $solr->search($query, 0, -1, $additionalParameters);
+		$res = $solr->search($query, 0, -1, $additionalParameters, $search['fqOptions']);
 		
 		return $res->response->numFound;
 	}
@@ -358,6 +606,7 @@ class EG_WP
 			'search_term' => $search['search_term'],
 			'prettySearchTerm' => $search['prettySearchTerm'],
 			'additionalParameters' => $search['additionalParameters'],
+			'fqOptions' => $search['fqOptions'],
 		);
 	}
 			
@@ -382,16 +631,18 @@ class EG_WP
 			$limit = $paging['results_pagesize'];
 			$query = $paging['search_term'];
 			$additionalParameters = $paging['additionalParameters'];
+			$fqOptions = $paging['fqOptions'];
 		// else get the default (or set) results_count sizes and parameters
 		} else {
 			$offset = $search['results_offset'];
 			$limit = $search['results_count'];
 			$query = $search['search_term'];
 			$additionalParameters = $search['additionalParameters'];
+			$fqOptions = $search['fqOptions'];
 		}
 
 		// execute search
-		$res = $solr->search('"'.$query.'"', $offset, $limit, $additionalParameters);
+		$res = $solr->search('"'.$query.'"', $offset, $limit, $additionalParameters, $fqOptions);
 
 		// response
 		$responseArray = get_object_vars($res->response);

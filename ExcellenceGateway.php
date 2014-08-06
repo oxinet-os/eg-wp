@@ -144,6 +144,7 @@ function ExcellenceGateway_Search_func( $atts ) {
 		'var_pagenumber' => 'pg',
 		'var_searchterm' => 'qq',
 		'http_method' => 'GET',
+		'vocabularies' => false,
 	), $atts, 'ExcellenceGateway_Search' ) );
 	
 	if ( !isset($atts['template_result_item']) || $atts['template_result_item'] == 'result_item_default' ) {
@@ -158,6 +159,11 @@ function ExcellenceGateway_Search_func( $atts ) {
 	if (!empty($search_term) || (empty($search_term) && $search_on_empty)) {
 	
 		$search_term = urldecode($search_term);
+		
+		// if vocabularies exist and there are more than one (CSV'd) then split into an array
+		if ($vocabularies !== FALSE && strpos($vocabularies, ",") !== FALSE) {
+			$vocabularies = explode(",", $vocabularies);
+		}
 		
 		$eg_search = new EG_WP(
 			'search',
@@ -175,6 +181,7 @@ function ExcellenceGateway_Search_func( $atts ) {
 				'var_pagenumber' => $var_pagenumber,
 				'var_searchterm' => $var_searchterm,
 				'http_method' => $http_method,
+				'vocabularies' => $vocabularies,
 			)
 		);
 		
@@ -189,26 +196,85 @@ function ExcellenceGateway_Search_func( $atts ) {
 }
 add_shortcode( 'ExcellenceGateway_Search', 'ExcellenceGateway_Search_func' );
 
-function ExcellenceGateway_SearchForm_func( $atts ) {		
+function ExcellenceGateway_SearchForm_func( $atts ) {
 	extract( shortcode_atts( array(
 		'placeholder' => 'Search term...',
 		'var_searchterm' => 'qq',
 		'http_method' => 'GET',
+		'show_main_submit' => "true",
+		'show_main_reset' => "true",
+		'enable_vocabularies' => "false",
+		'vocabularies' => false,
+		'vocabularies_titletoggle' => "Search options",
+		'vocabularies_optionsemptyvaluestring' => "true",
+		'vocabularies_showtitles' => "false",
+		'vocabularies_showbydefault' => "false",
+		'vocabularies_showsubmitbutton' => "false",
+		'vocabularies_showresetbutton' => "false",
 	), $atts, 'ExcellenceGateway_SearchForm' ) );
 	
+	// get the search term from the request based on $var_searchterm (default "qq")
 	$inputSearchTerm = isset($_REQUEST[$var_searchterm]) ? $_REQUEST[$var_searchterm] : "";
 	
-	$content = '
-	<div class="eg-search-form">
-		<form method="'.$http_method.'">
-			<input type="text" name="'.$var_searchterm.'" placeholder="'.$placeholder.'" value="'.$inputSearchTerm.'" />
-			<input type="submit" /> 
-		</form>
-	</div>';
+	// set up the form
+	$content = '<div class="eg-search-form"><form method="'.$http_method.'">';
+	$content .= '<input type="text" name="'.$var_searchterm.'" placeholder="'.$placeholder.'" value="'.$inputSearchTerm.'" />';
+	if ($show_main_submit != "false") 
+	{
+		$content .= '<input name="main_submit" type="submit" />';
+	}
+	if ($show_main_reset != "false") 
+	{
+		$content .= '<input name="main_reset" type="reset" />';
+	}
+	// if vocabularies are enabled then add a div with class='eg-add-filters' and a select from GetSelectOfVocabularies in EG_WP
+	if ($enable_vocabularies == "true") {
 	
+		// if vocabularies exist and there are more than one (CSV'd) then split into an array
+		if ($vocabularies !== FALSE && strpos($vocabularies, ",") !== FALSE) {
+			$vocabularies = explode(",", $vocabularies);
+		}
+		
+		$eg = new EG_WP();
+		
+		if (!empty($vocabularies_titletoggle))
+		{
+			$content .= "<div class='eg-searchoptions' style='text-decoration: underline;cursor: pointer;'>".$vocabularies_titletoggle."</div>";
+			$content .= "<script type='text/javascript'>jQuery(function() { jQuery('.eg-searchoptions').on('click', function() { jQuery('.eg-add-filters').toggle('fast'); }) });</script>";
+		}
+	
+		$content .= "<div class='eg-add-filters' style='".($vocabularies_showbydefault == "true" || $eg->HasAnyVocab($_REQUEST) ? "" : "display:none;")."'>";
+		$content .= $eg->GetSelectOfVocabularies($vocabularies, $vocabularies_optionsemptyvaluestring, $vocabularies_showtitles, $_REQUEST);
+		$content .= '</div>';
+		
+		if ($vocabularies_showsubmitbutton != "false")
+		{
+			$content .= '<input name="vocab_submit" type="submit" />';
+		}
+		if ($vocabularies_showresetbutton != "false") 
+		{
+			$content .= '<input name="vocab_reset" type="reset" />';
+		}
+	}
+	
+	// reset script
+	$content .= "<script type='text/javascript'>jQuery(function() {";
+	$content .= "jQuery('.eg-search-form form input[type=\"reset\"]').on('click', function() { jQuery('.eg-add-filters select').each(function() { jQuery(this).val(''); jQuery(this).find(\"option\").each(function() { jQuery(this).removeAttr(\"selected\"); }); }); setTimeout(function() { jQuery('.eg-search-form input[name=\"".$var_searchterm."\"]').val(''); },250); });";
+	$content .= "});</script>";
+	
+	$content .= '</form></div>';
+	
+	// return form
 	echo $content;
 }
 add_shortcode( 'ExcellenceGateway_SearchForm', 'ExcellenceGateway_SearchForm_func' );
+
+function Eg_Test_func() {
+	$eg = new EG_WP();
+	$vocabRes = $eg->GetSelectOfVocabularies(FALSE, "Please select...", FALSE);
+	echo $vocabRes;
+}
+add_shortcode( 'Eg_Test', 'Eg_Test_func' );
 
 function ExcellenceGateway_Single_func( $atts ) {	
 	extract( shortcode_atts( array(
