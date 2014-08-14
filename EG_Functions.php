@@ -201,12 +201,12 @@ class EG_WP
 					if ($defaultValue === TRUE)
 					{
 						$defaultValue = $vocab[2];
-						$retContent .= "<option value=''>".$defaultValue."</option>";
+						$retContent .= "<option value='' style='color:grey;'>".$defaultValue."</option>";
 						$defaultValue = TRUE;
 					}
 					else 
 					{
-						$retContent .= "<option value=''>".$defaultValue."</option>";
+						$retContent .= "<option value='' style='color:grey;'>".$defaultValue."</option>";
 					}
 				}
 				if ($vocab[3] !== FALSE)

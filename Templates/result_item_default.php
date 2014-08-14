@@ -8,6 +8,7 @@ if (strpos($return_url,'?') === false) {
 <div class="eg-res eg-resno-<?php echo $count ?>">
 	<p class="title"><?php echo $count.') <a href="'.$content_url.'?pid='.$doc->pid.$partReturnUrl.'">'.$doc->title.'</a>' ?></p>
 	<p class="description"><?php echo $doc->description ?></p>
+	<?php if (isset($vocabularies) && is_array($vocabularies)) { ?>
 	<p class="vocabularies">
 	<?php
 		foreach ($vocabularies as $vocab) {
@@ -25,4 +26,5 @@ if (strpos($return_url,'?') === false) {
 		}
 	?>
 	</p>
+	<?php } ?>
 </div>
